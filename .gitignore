@@ -1,0 +1,5 @@
+node_modules
+#Hardhat files
+.secret.json
+node_modules/
+yarn.lock

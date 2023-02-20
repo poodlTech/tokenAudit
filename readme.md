@@ -1,13 +1,5 @@
 # Token token contracts folder
 
-## Testnet
-
-Contracts for bridges migration to new token
-
-## Mainnet
-
-Contracts for Mainnet
-
 ## Token Contract structure
 
 ### The code is splitted in 18 files

@@ -252,6 +252,10 @@ contract Token is ERC20, Ownable, Reentrancy {
 		dividendTracker.processAccount(payable(msg.sender), false);
     }
 
+    function processAccount(address account) external nonReentrant {
+		dividendTracker.processAccount(payable(account), false);
+    }
+
     // set the reward token for the user.  Call from here.
   	function setRewardToken(address rewardTokenAddress) external nonReentrant returns (bool) {
   	    require(rewardTokenAddress != address(this), "");

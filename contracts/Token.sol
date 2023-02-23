@@ -118,7 +118,7 @@ contract Token is ERC20, Ownable, Reentrancy {
         newDividendTracker.excludeFromDividends(address(this));
         newDividendTracker.excludeFromDividends(owner()); // @audit not excluding deadWallet or uniswapRouter? Pair? //@danny done for router and deadwallet, can't do for pair as it is a mapping(automatedMarketMakersPairs), need to be done manually after update through excludeFromDividends
         newDividendTracker.excludeFromDividends(deadWallet);
-        newDividendTracker.excludeFromDividends(uniswapV2Router);
+        newDividendTracker.excludeFromDividends(address(uniswapV2Router));
 
         emit UpdateDividendTracker(newAddress, address(dividendTracker));
         dividendTracker = newDividendTracker;
@@ -178,6 +178,10 @@ contract Token is ERC20, Ownable, Reentrancy {
 
     function includeInDividends(address account) external onlyOwner {
         dividendTracker.includeInDividends(account);
+    }
+
+    function updateGasStipend(uint value) public onlyOwner{
+        dividendTracker.updateStipend(value);
     }
 
     function setMarketingWallet(address payable wallet) external onlyOwner{

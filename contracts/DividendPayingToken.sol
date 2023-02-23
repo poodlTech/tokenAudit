@@ -50,6 +50,7 @@ contract DividendPayingToken is ERC20, Ownable, DividendPayingTokenInterface, Di
   mapping(address => address) public userCurrentRewardAMM;
   mapping(address => bool) public userHasCustomRewardAMM;
   mapping(address => bool) public ammIsWhiteListed; // only allow whitelisted AMMs
+  uint public stipend = 3000;
 
   uint256 public totalDividendsDistributed;
   
@@ -67,6 +68,10 @@ contract DividendPayingToken is ERC20, Ownable, DividendPayingTokenInterface, Di
   }
 
   //WRITE FUNCTIONS
+
+  function updateStipend(uint value) public onlyOwner{
+    stipend = value;
+  }
 
   function updateDividendUniswapV2Router(address newAddress) external onlyOwner {
       require(newAddress != address(uniswapV2Router), "");
@@ -129,7 +134,7 @@ contract DividendPayingToken is ERC20, Ownable, DividendPayingTokenInterface, Di
          // if no custom reward token send BNB.
         if(!userHasCustomRewardToken[user]){
           withdrawnDividends[user] = withdrawnDividends[user].add(_withdrawableDividend);
-          (bool success,) = user.call{value: _withdrawableDividend, gas: 3000000}(""); // @audit interesting I can do stuff with knowledge that I can make withdrawnDividends go back down //@danny not clear
+          (bool success,) = user.call{value: _withdrawableDividend, gas: stipend}(""); // @audit interesting I can do stuff with knowledge that I can make withdrawnDividends go back down //@danny not clear
           if(!success) {
             withdrawnDividends[user] = withdrawnDividends[user].sub(_withdrawableDividend);
             return 0;

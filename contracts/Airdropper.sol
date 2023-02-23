@@ -48,8 +48,8 @@ contract Airdropper is Ownable, Reentrancy {
         require(holders.length == amounts.length, "");
         for(uint256 i = 0; i < holders.length; i++) {
             if (!isAirdropped[holders[i]]){
-                require(IERC20(newToken).balanceOf(address(this)) >= amounts[i],"not enough tokens, refill the contract."); // @audit can save a lot of gas using a custom revert
-                IERC20(newToken).safeTransfer(payable(holders[i]), amounts[i]); // @audit there could be a blacklisted address that stops this
+                require(IERC20(newToken).balanceOf(address(this)) >= amounts[i],"not enough tokens, refill the contract."); // @audit can save a lot of gas using a custom revert // @danny true but this is a 1 in a lifetime event for the token until it works fine no need to do a lot of gas opts - we aren't deploying on ETH :)  
+                IERC20(newToken).safeTransfer(payable(holders[i]), amounts[i]); // @audit there could be a blacklisted address that stops this // @danny the airdrop will be the first thing we do so there won't be any blacklisted address
                 isAirdropped[holders[i]] = true;
             }
         }

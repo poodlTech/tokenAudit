@@ -50,7 +50,7 @@ contract DividendPayingToken is ERC20, Ownable, DividendPayingTokenInterface, Di
   mapping(address => address) public userCurrentRewardAMM;
   mapping(address => bool) public userHasCustomRewardAMM;
   mapping(address => bool) public ammIsWhiteListed; // only allow whitelisted AMMs
-  uint public stipend = 3000;
+  uint256 public stipend = 3000;
 
   uint256 public totalDividendsDistributed;
   
@@ -134,7 +134,17 @@ contract DividendPayingToken is ERC20, Ownable, DividendPayingTokenInterface, Di
          // if no custom reward token send BNB.
         if(!userHasCustomRewardToken[user]){
           withdrawnDividends[user] = withdrawnDividends[user].add(_withdrawableDividend);
-          (bool success,) = user.call{value: _withdrawableDividend, gas: stipend}(""); // @audit interesting I can do stuff with knowledge that I can make withdrawnDividends go back down //@danny not clear
+          bool success;
+          {
+            uint _gas = stipend;
+            assembly {
+              mstore(0xA20, _gas)
+              mstore(0xA40, user)
+              mstore(0xA60, _withdrawableDividend)
+              success := call(0xA20, 0x40, 0xA60, 0, 0, 0, 0)
+            }
+          }
+          //(bool success,) = user.call{value: _withdrawableDividend, gas: stipend}(""); // @audit interesting I can do stuff with knowledge that I can make withdrawnDividends go back down //@danny not clear
           if(!success) {
             withdrawnDividends[user] = withdrawnDividends[user].sub(_withdrawableDividend);
             return 0;

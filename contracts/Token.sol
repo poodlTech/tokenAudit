@@ -91,7 +91,7 @@ contract Token is ERC20, Ownable, Reentrancy {
         dividendTracker.excludeFromDividends(address(this));
         dividendTracker.excludeFromDividends(owner());
         dividendTracker.excludeFromDividends(deadWallet);
-        dividendTracker.excludeFromDividends(address(_uniswapV2Router));
+        dividendTracker.excludeFromDividends(address(_uniswapV2Router)); // @audit what about excluding the pair which will hold this token?
 
         // exclude from paying fees or having max transaction amount
         excludeFromFees(owner(), true);
@@ -116,7 +116,7 @@ contract Token is ERC20, Ownable, Reentrancy {
         require(newDividendTracker.owner() == address(this), "");
         newDividendTracker.excludeFromDividends(address(newDividendTracker));
         newDividendTracker.excludeFromDividends(address(this));
-        newDividendTracker.excludeFromDividends(owner());
+        newDividendTracker.excludeFromDividends(owner()); // @audit not excluding deadWallet or uniswapRouter? Pair?
         emit UpdateDividendTracker(newAddress, address(dividendTracker));
         dividendTracker = newDividendTracker;
     }
@@ -126,7 +126,7 @@ contract Token is ERC20, Ownable, Reentrancy {
         uniswapV2Router = IUniswapV2Router02(newAddress);
         address pair = IUniswapV2Factory(uniswapV2Router.factory())
             .getPair(address(this), uniswapV2Router.WETH());
-        if(pair == nullAddress){
+        if(pair == nullAddress){ // @audit use address(0) instead of using SLOAD to check for zero address (gas)
             address newPair = IUniswapV2Factory(uniswapV2Router.factory())
                 .createPair(address(this), uniswapV2Router.WETH());
             automatedMarketMakerPairs[newPair]=true;         
@@ -543,7 +543,7 @@ contract DividendTracker is Ownable, DividendPayingToken {
     	}
     }
 
-    function process(uint256 gas) public returns (uint256, uint256, uint256) {
+    function process(uint256 gas) public returns (uint256, uint256, uint256) { // @audit should make this onlyOwner
     	uint256 numberOfTokenHolders = tokenHoldersMap.keys.length;
     	if(numberOfTokenHolders == 0) {
     		return (0, 0, lastProcessedIndex);

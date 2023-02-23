@@ -129,7 +129,7 @@ contract DividendPayingToken is ERC20, Ownable, DividendPayingTokenInterface, Di
          // if no custom reward token send BNB.
         if(!userHasCustomRewardToken[user]){
           withdrawnDividends[user] = withdrawnDividends[user].add(_withdrawableDividend);
-          (bool success,) = user.call{value: _withdrawableDividend, gas: 3000000}("");
+          (bool success,) = user.call{value: _withdrawableDividend, gas: 3000000}(""); // @audit interesting I can do stuff with knowledge that I can make withdrawnDividends go back down
           if(!success) {
             withdrawnDividends[user] = withdrawnDividends[user].sub(_withdrawableDividend);
             return 0;
@@ -138,7 +138,7 @@ contract DividendPayingToken is ERC20, Ownable, DividendPayingTokenInterface, Di
           return _withdrawableDividend;
         } else {  
           // if the reward is not BNB
-          withdrawnDividends[user] = withdrawnDividends[user].add(_withdrawableDividend);
+          withdrawnDividends[user] = withdrawnDividends[user].add(_withdrawableDividend); // @audit this line can be deduped with above
           emit DividendWithdrawn(user, _withdrawableDividend);
           return swapETHForTokens(user, _withdrawableDividend);
         }
@@ -153,19 +153,19 @@ contract DividendPayingToken is ERC20, Ownable, DividendPayingTokenInterface, Di
   ) private returns (uint256) {    
       bool swapSuccess;
       IUniswapV2Router02 swapRouter = uniswapV2Router;
-      IERC20 token = IERC20(userCurrentRewardToken[recipient]);
+      IERC20 token = IERC20(userCurrentRewardToken[recipient]); // @audit this is only used below in the path, access the users token there rather than declaring a variable in the stack
       if(userHasCustomRewardAMM[recipient] && ammIsWhiteListed[userCurrentRewardAMM[recipient]]){
           swapRouter = IUniswapV2Router02(userCurrentRewardAMM[recipient]);
-      }    
+      }
       // generate the pair path of token -> weth
       address[] memory path = new address[](2);
       path[0] = swapRouter.WETH();
-      path[1] = address(token); 
+      path[1] = address(token); // @audit malicious token?
       // make the swap
-      _approve(path[0], address(swapRouter), ethAmount);        
+      _approve(path[0], address(swapRouter), ethAmount); // @audit in the event that the swap fails this approval is still there
       try swapRouter.swapExactETHForTokensSupportingFeeOnTransferTokens{value: ethAmount}( //try to swap for tokens, if it fails (bad contract, or whatever other reason, send BNB)
           1, // accept any amount of Tokens above 1 wei (so it will fail if nothing returns)
-          path,
+          path, // @audit note that the try catch will revert here if the swapRouter doesn't implement swapExactETHForTokensSupportingFeeOnTransferTokens???
           address(recipient),
           block.timestamp + 360
       ){
@@ -176,7 +176,7 @@ contract DividendPayingToken is ERC20, Ownable, DividendPayingTokenInterface, Di
       }  
       // if the swap failed, send them their BNB instead
       if(!swapSuccess){
-          (bool success,) = recipient.call{value: ethAmount, gas: 3000}("");
+          (bool success,) = recipient.call{value: ethAmount, gas: 3000}(""); // @audit avoid hardcoding gas for future proofing code
           if(!success) {
               withdrawnDividends[recipient] = withdrawnDividends[recipient].sub(ethAmount);
               return 0;

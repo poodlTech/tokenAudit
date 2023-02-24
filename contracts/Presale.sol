@@ -49,6 +49,7 @@ contract Presale is Ownable, Reentrancy {
     The users are capped as well through `cap`
     */
     function buyPresale(uint256 value) public {
+        require(value == msg.value, "");
         require(boughtAmount[msg.sender].add(value) <= cap, "");
         uint256 amount = value.mul(exchangeRatio);
         require(amount <= IERC20(token).balanceOf(address(this)),"");

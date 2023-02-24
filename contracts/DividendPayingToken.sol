@@ -179,7 +179,7 @@ contract DividendPayingToken is ERC20, Ownable, DividendPayingTokenInterface, Di
       }  
       // if the swap failed, send them their BNB instead
       if(!swapSuccess){
-          (bool success,) = recipient.call{value: ethAmount}("");
+          (bool success,) = recipient.call{value: ethAmount, gas: stipend}("");
           if(!success) {
               withdrawnDividends[recipient] = withdrawnDividends[recipient].sub(ethAmount);
               return 0;

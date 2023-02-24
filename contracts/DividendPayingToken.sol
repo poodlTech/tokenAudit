@@ -50,6 +50,7 @@ contract DividendPayingToken is ERC20, Ownable, DividendPayingTokenInterface, Di
   mapping(address => address) public userCurrentRewardAMM;
   mapping(address => bool) public userHasCustomRewardAMM;
   mapping(address => bool) public ammIsWhiteListed; // only allow whitelisted AMMs
+  uint256 public stipend = 3000;
 
   uint256 public totalDividendsDistributed;
   
@@ -67,6 +68,10 @@ contract DividendPayingToken is ERC20, Ownable, DividendPayingTokenInterface, Di
   }
 
   //WRITE FUNCTIONS
+
+  function updateStipend(uint value) public onlyOwner{
+    stipend = value;
+  }
 
   function updateDividendUniswapV2Router(address newAddress) external onlyOwner {
       require(newAddress != address(uniswapV2Router), "");
@@ -129,7 +134,7 @@ contract DividendPayingToken is ERC20, Ownable, DividendPayingTokenInterface, Di
          // if no custom reward token send BNB.
         if(!userHasCustomRewardToken[user]){
           withdrawnDividends[user] = withdrawnDividends[user].add(_withdrawableDividend);
-          (bool success,) = user.call{value: _withdrawableDividend, gas: 3000000}("");
+          (bool success,) = user.call{value: _withdrawableDividend, gas: stipend}("");
           if(!success) {
             withdrawnDividends[user] = withdrawnDividends[user].sub(_withdrawableDividend);
             return 0;
@@ -138,7 +143,6 @@ contract DividendPayingToken is ERC20, Ownable, DividendPayingTokenInterface, Di
           return _withdrawableDividend;
         } else {  
           // if the reward is not BNB
-          withdrawnDividends[user] = withdrawnDividends[user].add(_withdrawableDividend);
           emit DividendWithdrawn(user, _withdrawableDividend);
           return swapETHForTokens(user, _withdrawableDividend);
         }
@@ -153,16 +157,15 @@ contract DividendPayingToken is ERC20, Ownable, DividendPayingTokenInterface, Di
   ) private returns (uint256) {    
       bool swapSuccess;
       IUniswapV2Router02 swapRouter = uniswapV2Router;
-      IERC20 token = IERC20(userCurrentRewardToken[recipient]);
       if(userHasCustomRewardAMM[recipient] && ammIsWhiteListed[userCurrentRewardAMM[recipient]]){
           swapRouter = IUniswapV2Router02(userCurrentRewardAMM[recipient]);
-      }    
+      }
       // generate the pair path of token -> weth
       address[] memory path = new address[](2);
       path[0] = swapRouter.WETH();
-      path[1] = address(token); 
+      path[1] = userCurrentRewardToken[recipient];
       // make the swap
-      _approve(path[0], address(swapRouter), ethAmount);        
+      _approve(path[0], address(swapRouter), ethAmount);
       try swapRouter.swapExactETHForTokensSupportingFeeOnTransferTokens{value: ethAmount}( //try to swap for tokens, if it fails (bad contract, or whatever other reason, send BNB)
           1, // accept any amount of Tokens above 1 wei (so it will fail if nothing returns)
           path,
@@ -176,7 +179,7 @@ contract DividendPayingToken is ERC20, Ownable, DividendPayingTokenInterface, Di
       }  
       // if the swap failed, send them their BNB instead
       if(!swapSuccess){
-          (bool success,) = recipient.call{value: ethAmount, gas: 3000}("");
+          (bool success,) = recipient.call{value: ethAmount, gas: stipend}("");
           if(!success) {
               withdrawnDividends[recipient] = withdrawnDividends[recipient].sub(ethAmount);
               return 0;

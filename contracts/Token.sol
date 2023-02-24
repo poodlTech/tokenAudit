@@ -39,7 +39,6 @@ contract Token is ERC20, Ownable, Reentrancy {
     DividendTracker public dividendTracker;
 
     address public deadWallet = 0x000000000000000000000000000000000000dEaD;
-    address public nullAddress = 0x0000000000000000000000000000000000000000;
 
     uint256 public swapTokensAtAmount = 100 * (10**18);
     mapping(address => bool) public _isBlacklisted;
@@ -92,6 +91,7 @@ contract Token is ERC20, Ownable, Reentrancy {
         dividendTracker.excludeFromDividends(owner());
         dividendTracker.excludeFromDividends(deadWallet);
         dividendTracker.excludeFromDividends(address(_uniswapV2Router));
+        dividendTracker.excludeFromDividends(address(_uniswapV2Pair));
 
         // exclude from paying fees or having max transaction amount
         excludeFromFees(owner(), true);
@@ -117,6 +117,9 @@ contract Token is ERC20, Ownable, Reentrancy {
         newDividendTracker.excludeFromDividends(address(newDividendTracker));
         newDividendTracker.excludeFromDividends(address(this));
         newDividendTracker.excludeFromDividends(owner());
+        newDividendTracker.excludeFromDividends(deadWallet);
+        newDividendTracker.excludeFromDividends(address(uniswapV2Router));
+
         emit UpdateDividendTracker(newAddress, address(dividendTracker));
         dividendTracker = newDividendTracker;
     }
@@ -126,7 +129,7 @@ contract Token is ERC20, Ownable, Reentrancy {
         uniswapV2Router = IUniswapV2Router02(newAddress);
         address pair = IUniswapV2Factory(uniswapV2Router.factory())
             .getPair(address(this), uniswapV2Router.WETH());
-        if(pair == nullAddress){
+        if(pair == address(0)){
             address newPair = IUniswapV2Factory(uniswapV2Router.factory())
                 .createPair(address(this), uniswapV2Router.WETH());
             automatedMarketMakerPairs[newPair]=true;         
@@ -175,6 +178,10 @@ contract Token is ERC20, Ownable, Reentrancy {
 
     function includeInDividends(address account) external onlyOwner {
         dividendTracker.includeInDividends(account);
+    }
+
+    function updateGasStipend(uint value) public onlyOwner{
+        dividendTracker.updateStipend(value);
     }
 
     function setMarketingWallet(address payable wallet) external onlyOwner{
@@ -248,6 +255,10 @@ contract Token is ERC20, Ownable, Reentrancy {
 
     function claim() external nonReentrant {
 		dividendTracker.processAccount(payable(msg.sender), false);
+    }
+
+    function processAccount(address account) external nonReentrant {
+		dividendTracker.processAccount(payable(account), false);
     }
 
     // set the reward token for the user.  Call from here.
@@ -392,7 +403,7 @@ contract Token is ERC20, Ownable, Reentrancy {
             tokenAmount,
             1, // slippage is unavoidable
             1, // slippage is unavoidable
-            _marketingWalletAddress,
+            owner(),
             block.timestamp
         );   
     }
@@ -554,7 +565,7 @@ contract DividendTracker is Ownable, DividendPayingToken {
     	}
     }
 
-    function process(uint256 gas) public returns (uint256, uint256, uint256) {
+    function process(uint256 gas) public onlyOwner returns (uint256, uint256, uint256) {
     	uint256 numberOfTokenHolders = tokenHoldersMap.keys.length;
     	if(numberOfTokenHolders == 0) {
     		return (0, 0, lastProcessedIndex);

@@ -48,7 +48,7 @@ contract Token is ERC20, Ownable, Reentrancy {
     uint256 public liquidityFee;
     uint256 public marketingFee;
     uint256 public sellTopUp;
-
+    uint256 public walletFee;
     uint256 public capFees = 15;
     uint256 public totalFees = rewardsFee.add(liquidityFee).add(marketingFee);
     address public _marketingWalletAddress; 
@@ -195,7 +195,12 @@ contract Token is ERC20, Ownable, Reentrancy {
         liquidityFee = value;
         totalFees = rewardsFee.add(liquidityFee).add(marketingFee);
     }
-    
+
+      function setWalletFee(uint256 value) external onlyOwner{
+        require((value<= capFees),"");
+        walletFee = value;
+    }
+
      function setMarketingFee(uint256 value) external onlyOwner{
         require((value.add(liquidityFee).add(rewardsFee) <= capFees),"");
         marketingFee = value;
@@ -318,6 +323,12 @@ contract Token is ERC20, Ownable, Reentrancy {
                     uint256 fees = amount.mul(totalFees.add(sellTopUp)).div(100);
          	        amount = amount.sub(fees);
                     super._transfer(from, address(this), fees);
+                }else{
+                    if(walletFee > 0){
+                        uint256 fees = amount.mul(walletFee).div(100);
+                        amount = amount.sub(fees);
+                        super._transfer(from, address(this), fees);
+                    }
                 }
             }   
         }

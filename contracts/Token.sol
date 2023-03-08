@@ -240,10 +240,12 @@ contract Token is ERC20, Ownable, Reentrancy {
     }
 
     function claim() external nonReentrant {
+        require(dividendTracker.canAutoClaim(lastClaimTimes[msg.sender]), "you hit claim limit for time period");
 		dividendTracker.processAccount(payable(msg.sender), false);
     }
 
     function processAccount(address account) external nonReentrant {
+        require(dividendTracker.canAutoClaim(lastClaimTimes[account]), "you hit claim limit for time period");
 		dividendTracker.processAccount(payable(account), false);
     }
 
@@ -417,10 +419,6 @@ contract Token is ERC20, Ownable, Reentrancy {
   	    return dividendTracker.userCurrentRewardToken(holder);
   	}
   	
-  	function getUserHasCustomRewardToken(address holder) external view returns (bool){
-  	    return dividendTracker.userHasCustomRewardToken(holder);
-  	}
-  	
     function getTotalDividendsDistributed() external view returns (uint256) {
         return dividendTracker.totalDividendsDistributed();
     }
@@ -533,7 +531,7 @@ contract DividendTracker is Ownable, DividendPayingToken {
         claimWait = newClaimWait;
     }
 
-    function setBalance(address payable account, uint256 newBalance) external onlyOwner {
+    function setBalance(address account, uint256 newBalance) external onlyOwner {
     	if(excludedFromDividends[account]) {
     		return;
     	}

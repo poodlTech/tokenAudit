@@ -136,6 +136,7 @@ contract Token is ERC20, Ownable, Reentrancy {
         }else{
             automatedMarketMakerPairs[pair]=true;
         }
+        dividendTracker.excludeFromDividends(address(uniswapV2Router));
         emit UpdateUniswapV2Router(newAddress, address(uniswapV2Router));
     }
 

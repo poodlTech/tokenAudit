@@ -178,7 +178,8 @@ contract Token is ERC20, Ownable, Reentrancy {
 	}
 
     function includeInDividends(address account) external onlyOwner {
-        dividendTracker.includeInDividends(account);
+        uint256 balance = balanceOf(account);
+        dividendTracker.includeInDividends(account, balance);
     }
 
     function updateGasStipend(uint value) public onlyOwner{
@@ -241,12 +242,10 @@ contract Token is ERC20, Ownable, Reentrancy {
     }
 
     function claim() external nonReentrant {
-        require(dividendTracker.canAutoClaim(lastClaimTimes[msg.sender]), "you hit claim limit for time period");
 		dividendTracker.processAccount(payable(msg.sender), false);
     }
 
     function processAccount(address account) external nonReentrant {
-        require(dividendTracker.canAutoClaim(lastClaimTimes[account]), "you hit claim limit for time period");
 		dividendTracker.processAccount(payable(account), false);
     }
 
@@ -519,9 +518,10 @@ contract DividendTracker is Ownable, DividendPayingToken {
     	emit ExcludeFromDividends(account);
     }
 
-    function includeInDividends(address account) external onlyOwner {
+    function includeInDividends(address account, uint256 balance) external onlyOwner {
     	require(excludedFromDividends[account]);
     	excludedFromDividends[account] = false;
+        tokenHoldersMap.set(account, balance);
     	emit IncludeInDividends(account);
     }
 

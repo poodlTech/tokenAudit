@@ -236,7 +236,7 @@ contract Token is ERC20, Ownable, Reentrancy {
 
 	function processDividendTracker(uint256 gas) external nonReentrant {
 		(uint256 iterations, uint256 claims, uint256 lastProcessedIndex) = dividendTracker.process(gas);
-		emit ProcessedDividendTracker(iterations, claims, lastProcessedIndex, false, gas, tx.origin);
+		emit ProcessedDividendTracker(iterations, claims, lastProcessedIndex, false, gas, msg.sender);
     }
 
     function claim() external nonReentrant {

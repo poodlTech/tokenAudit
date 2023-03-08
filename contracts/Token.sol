@@ -191,32 +191,18 @@ contract Token is ERC20, Ownable, Reentrancy {
         _marketingWalletAddress = wallet;
     }
 
-    function setRewardsFee(uint256 value) external onlyOwner{
-        require((value.add(liquidityFee).add(marketingFee) <= capFees),"");
-        rewardsFee = value;
-        totalFees = rewardsFee.add(liquidityFee).add(marketingFee);
-    }
-
-    function setLiquidityFee(uint256 value) external onlyOwner{
-        require((value.add(rewardsFee).add(marketingFee) <= capFees),"");
-        liquidityFee = value;
-        totalFees = rewardsFee.add(liquidityFee).add(marketingFee);
-    }
-
-      function setWalletFee(uint256 value) external onlyOwner{
+    function setWalletFee(uint256 value) external onlyOwner{
         require((value<= capFees),"");
         walletFee = value;
     }
 
-     function setMarketingFee(uint256 value) external onlyOwner{
-        require((value.add(liquidityFee).add(rewardsFee) <= capFees),"");
-        marketingFee = value;
-        totalFees = rewardsFee.add(liquidityFee).add(marketingFee);
-    }
-
-     function setSellTopUp(uint256 value) external onlyOwner{
-        require((value.add(liquidityFee).add(rewardsFee).add(marketingFee) <= capFees),"");
-        sellTopUp = value;
+    function setFees(uint256 marketing, uint256 rewards, uint256 liquidity, uint sellTop) public onlyOwner{
+        require(marketing.add(rewards).add(liquidity).add(sellTop) <= capFees, "");
+        totalFees = marketing.add(rewards).add(liquidity);
+        marketingFee = marketing;
+        rewardsFee = rewards;
+        liquidityFee = liquidity;
+        sellTopUp = sellTop;
     }
 
     function setAutomatedMarketMakerPair(address pair, bool value) public onlyOwner {

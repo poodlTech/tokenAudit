@@ -181,13 +181,6 @@ contract DividendPayingToken is ERC20, Ownable, DividendPayingTokenInterface, Di
       return ethAmount;
   }
 
-  function _transfer(address from, address to, uint256 value) internal virtual override {
-    require(false);
-    int256 _magCorrection = magnifiedDividendPerShare.mul(value).toInt256Safe();
-    magnifiedDividendCorrections[from] = magnifiedDividendCorrections[from].add(_magCorrection);
-    magnifiedDividendCorrections[to] = magnifiedDividendCorrections[to].sub(_magCorrection);
-  }
-
   function _mint(address account, uint256 value) internal override {
     super._mint(account, value);
     magnifiedDividendCorrections[account] = magnifiedDividendCorrections[account]

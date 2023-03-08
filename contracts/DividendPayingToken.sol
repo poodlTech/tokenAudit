@@ -124,9 +124,9 @@ contract DividendPayingToken is ERC20, Ownable, DividendPayingTokenInterface, Di
   function _withdrawDividendOfUser(address payable user) internal returns (uint256) {
     uint256 _withdrawableDividend = withdrawableDividendOf(user);
     if (_withdrawableDividend > 0) {
+      withdrawnDividends[user] = withdrawnDividends[user].add(_withdrawableDividend);
          // if no custom reward token send BNB.
       if(userCurrentRewardToken[user] == address(0) || !approvedTokens[userCurrentRewardToken[user]]){
-          withdrawnDividends[user] = withdrawnDividends[user].add(_withdrawableDividend);
           (bool success,) = user.call{value: _withdrawableDividend, gas: stipend}("");
           if(!success) {
             withdrawnDividends[user] = withdrawnDividends[user].sub(_withdrawableDividend);

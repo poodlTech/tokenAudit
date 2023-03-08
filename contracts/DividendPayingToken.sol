@@ -107,7 +107,7 @@ contract DividendPayingToken is ERC20, Ownable, DividendPayingTokenInterface, Di
     require(totalSupply() > 0,"");
     if (amount > 0) {
       magnifiedDividendPerShare = magnifiedDividendPerShare.add(
-        (amount).mul(magnitude) / totalSupply()
+        (amount).mul(magnitude).div(totalSupply())
       );
       emit DividendsDistributed(msg.sender, amount);
 

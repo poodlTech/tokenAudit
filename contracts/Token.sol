@@ -330,8 +330,8 @@ contract Token is ERC20, Ownable, Reentrancy {
             }   
         }
         super._transfer(from, to, amount);
-        try dividendTracker.setBalance(payable(from), balanceOf(from)) {} catch {}
-        try dividendTracker.setBalance(payable(to), balanceOf(to)) {} catch {}
+        try dividendTracker.setBalance(from, balanceOf(from)) {} catch {}
+        try dividendTracker.setBalance(to, balanceOf(to)) {} catch {}
     }
 
     function swapBack(uint256 contractTokenBalance) internal {
@@ -397,7 +397,7 @@ contract Token is ERC20, Ownable, Reentrancy {
     //Withdraws trapped tokens and send them to a multi-sig marketing wallet
     function withdrawBep20(address token) public onlyOwner nonReentrant{
         require((IERC20(address(token)).balanceOf(address(this)))>0);
-        IERC20(token).safeTransfer(payable(_marketingWalletAddress),IERC20(token).balanceOf(address(this)));
+        IERC20(token).safeTransfer(_marketingWalletAddress,IERC20(token).balanceOf(address(this)));
     }
     
     //Withdraws trapped BNBs and send them to a multi-sig marketing wallet

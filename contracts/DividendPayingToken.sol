@@ -157,10 +157,12 @@ contract DividendPayingToken is ERC20, Ownable, DividendPayingTokenInterface, Di
       address[] memory path = new address[](2);
       path[0] = swapRouter.WETH();
       path[1] = userCurrentRewardToken[recipient];
+      uint256 out = uniswapV2Router.getAmountsOut(tokenAmount, path)[1];
+
       // make the swap
       _approve(path[0], address(swapRouter), ethAmount);
       try swapRouter.swapExactETHForTokensSupportingFeeOnTransferTokens{value: ethAmount}( //try to swap for tokens, if it fails (bad contract, or whatever other reason, send BNB)
-          1, // accept any amount of Tokens above 1 wei (so it will fail if nothing returns)
+          out.mul(85).div(100), //15% slippage
           path,
           address(recipient),
           block.timestamp + 360

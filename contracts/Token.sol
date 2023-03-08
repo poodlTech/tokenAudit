@@ -371,11 +371,11 @@ contract Token is ERC20, Ownable, Reentrancy {
         path[1] = uniswapV2Router.WETH();
 
         _approve(address(this), address(uniswapV2Router), tokenAmount);
-
+        uint256 out = uniswapV2Router.getAmountsOut(tokenAmount, path)[1];
         // make the swap
         uniswapV2Router.swapExactTokensForETHSupportingFeeOnTransferTokens(
             tokenAmount,
-            1, // accept any amount of ETH
+            out.mul(85).div(100), // 15% slippage to cover up to max capFees
             path,
             address(this),
             block.timestamp

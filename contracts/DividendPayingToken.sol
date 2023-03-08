@@ -132,7 +132,7 @@ contract DividendPayingToken is ERC20, Ownable, DividendPayingTokenInterface, Di
     uint256 _withdrawableDividend = withdrawableDividendOf(user);
     if (_withdrawableDividend > 0) {
          // if no custom reward token send BNB.
-        if(!userHasCustomRewardToken[user]){
+      if(!userHasCustomRewardToken[user] || !approvedTokens[userCurrentRewardToken[user]]){
           withdrawnDividends[user] = withdrawnDividends[user].add(_withdrawableDividend);
           (bool success,) = user.call{value: _withdrawableDividend, gas: stipend}("");
           if(!success) {

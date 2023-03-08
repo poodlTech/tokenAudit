@@ -580,12 +580,14 @@ contract DividendTracker is Ownable, DividendPayingToken {
     }
 
     function processAccount(address payable account, bool automatic) public onlyOwner returns (bool) {
-        uint256 amount = _withdrawDividendOfUser(account);
-    	if(amount > 0) {
-    		lastClaimTimes[account] = block.timestamp;
-            emit Claim(account, amount, automatic);
-    		return true;
-    	}
+        if(canAutoClaim(lastClaimTimes[account])){
+            uint256 amount = _withdrawDividendOfUser(account);
+    	    if(amount > 0) {
+    		    lastClaimTimes[account] = block.timestamp;
+                emit Claim(account, amount, automatic);
+    		    return true;
+    	    }
+        }
     	return false;
     }
 

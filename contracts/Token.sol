@@ -512,10 +512,6 @@ contract DividendTracker is Ownable, DividendPayingToken {
         require(false, "");
     }
 
-    function withdrawDividend() public override pure {
-        require(false, "Use the 'claim' function");
-    }
-
     function excludeFromDividends(address account) external onlyOwner {
     	require(!excludedFromDividends[account],"");
     	excludedFromDividends[account] = true;

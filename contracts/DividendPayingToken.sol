@@ -45,10 +45,8 @@ contract DividendPayingToken is ERC20, Ownable, DividendPayingTokenInterface, Di
   mapping(address => int256) internal magnifiedDividendCorrections;
   mapping(address => uint256) internal withdrawnDividends;
   mapping(address => address) public userCurrentRewardToken;
-  mapping(address => bool) public userHasCustomRewardToken;
   mapping(address => bool) public approvedTokens;
   mapping(address => address) public userCurrentRewardAMM;
-  mapping(address => bool) public userHasCustomRewardAMM;
   mapping(address => bool) public ammIsWhiteListed; // only allow whitelisted AMMs
   uint256 public stipend = 3000;
 
@@ -89,15 +87,12 @@ contract DividendPayingToken is ERC20, Ownable, DividendPayingTokenInterface, Di
 
   // call this to set a custom reward token (call from token contract only)
   function setRewardToken(address holder, address rewardTokenAddress) external onlyOwner {
-    userHasCustomRewardToken[holder] = true;
     userCurrentRewardToken[holder] = rewardTokenAddress;
   }
   
   // call this to set a custom reward token and AMM(call from token contract only)
   function setRewardTokenWithCustomAMM(address holder, address rewardTokenAddress, address ammContractAddress) external onlyOwner {
-    userHasCustomRewardToken[holder] = true;
     userCurrentRewardToken[holder] = rewardTokenAddress;    
-    userHasCustomRewardAMM[holder] = true;
     userCurrentRewardAMM[holder] = ammContractAddress;
   }
 
@@ -105,8 +100,6 @@ contract DividendPayingToken is ERC20, Ownable, DividendPayingTokenInterface, Di
   function unsetRewardToken(address holder) external onlyOwner {
     userCurrentRewardToken[holder] = address(0);
     userCurrentRewardAMM[holder] = address(uniswapV2Router);
-    userHasCustomRewardAMM[holder] = false;
-    userHasCustomRewardToken[holder] = false;
   }
 
   function distributeDividends(uint256 amount) public payable {
@@ -132,7 +125,7 @@ contract DividendPayingToken is ERC20, Ownable, DividendPayingTokenInterface, Di
     uint256 _withdrawableDividend = withdrawableDividendOf(user);
     if (_withdrawableDividend > 0) {
          // if no custom reward token send BNB.
-      if(!userHasCustomRewardToken[user] || !approvedTokens[userCurrentRewardToken[user]]){
+      if(userCurrentRewardToken[user] == address(0) || !approvedTokens[userCurrentRewardToken[user]]){
           withdrawnDividends[user] = withdrawnDividends[user].add(_withdrawableDividend);
           (bool success,) = user.call{value: _withdrawableDividend, gas: stipend}("");
           if(!success) {
@@ -157,7 +150,7 @@ contract DividendPayingToken is ERC20, Ownable, DividendPayingTokenInterface, Di
   ) private returns (uint256) {    
       bool swapSuccess;
       IUniswapV2Router02 swapRouter = uniswapV2Router;
-      if(userHasCustomRewardAMM[recipient] && ammIsWhiteListed[userCurrentRewardAMM[recipient]]){
+      if(userCurrentRewardAMM[recipient] != address(0) && ammIsWhiteListed[userCurrentRewardAMM[recipient]]){
           swapRouter = IUniswapV2Router02(userCurrentRewardAMM[recipient]);
       }
       // generate the pair path of token -> weth

@@ -45,22 +45,24 @@ contract DividendPayingToken is ERC20, Ownable, DividendPayingTokenInterface, Di
   mapping(address => int256) internal magnifiedDividendCorrections;
   mapping(address => uint256) internal withdrawnDividends;
   mapping(address => address) public userCurrentRewardToken;
-  mapping(address => bool) public userHasCustomRewardToken;
   mapping(address => bool) public approvedTokens;
   mapping(address => address) public userCurrentRewardAMM;
-  mapping(address => bool) public userHasCustomRewardAMM;
   mapping(address => bool) public ammIsWhiteListed; // only allow whitelisted AMMs
   uint256 public stipend = 3000;
+  uint256 public slippage = 20;
 
   uint256 public totalDividendsDistributed;
   
-  IUniswapV2Router02 public uniswapV2Router = IUniswapV2Router02(0x10ED43C718714eb63d5aA57B78B54704E256024E);
+  IUniswapV2Router02 public uniswapV2Router = IUniswapV2Router02(0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff);
 
   constructor(string memory _name, string memory _symbol)  ERC20(_name, _symbol) {
-    ammIsWhiteListed[address(0x10ED43C718714eb63d5aA57B78B54704E256024E)] = true;
-    approvedTokens[0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56] = true; // BUSD
-    approvedTokens[0x7130d2A12B9BCbFAe4f2634d864A1Ee1Ce3Ead9c] = true; // BTC
-    approvedTokens[0x2170Ed0880ac9A755fd29B2688956BD959F933F8] = true; // ETH
+    ammIsWhiteListed[address(0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff)] = true;
+    approvedTokens[0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174] = true; // USDC
+    approvedTokens[0xc2132D05D31c914a87C6611C10748AEb04B58e8F] = true; // USDT
+    approvedTokens[0x2C89bbc92BD86F8075d1DEcc58C7F4E0107f286b] = true; // AVAX
+    approvedTokens[0x1BFD67037B42Cf73acF2047067bd4F2C47D9BfD6] = true; // WBTC
+    approvedTokens[0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619] = true; // WETH
+    approvedTokens[0x2C89bbc92BD86F8075d1DEcc58C7F4E0107f286b] = true; // AVAX
   }
 
   receive() external payable {
@@ -86,18 +88,18 @@ contract DividendPayingToken is ERC20, Ownable, DividendPayingTokenInterface, Di
   function approveAMM(address ammAddress, bool whitelisted) external onlyOwner {
       ammIsWhiteListed[ammAddress] = whitelisted;
   }
+  function setSlippage(uint _slippage) external onlyOwner {
+    slippage = _slippage;
+  }
 
   // call this to set a custom reward token (call from token contract only)
   function setRewardToken(address holder, address rewardTokenAddress) external onlyOwner {
-    userHasCustomRewardToken[holder] = true;
     userCurrentRewardToken[holder] = rewardTokenAddress;
   }
   
   // call this to set a custom reward token and AMM(call from token contract only)
   function setRewardTokenWithCustomAMM(address holder, address rewardTokenAddress, address ammContractAddress) external onlyOwner {
-    userHasCustomRewardToken[holder] = true;
     userCurrentRewardToken[holder] = rewardTokenAddress;    
-    userHasCustomRewardAMM[holder] = true;
     userCurrentRewardAMM[holder] = ammContractAddress;
   }
 
@@ -105,8 +107,6 @@ contract DividendPayingToken is ERC20, Ownable, DividendPayingTokenInterface, Di
   function unsetRewardToken(address holder) external onlyOwner {
     userCurrentRewardToken[holder] = address(0);
     userCurrentRewardAMM[holder] = address(uniswapV2Router);
-    userHasCustomRewardAMM[holder] = false;
-    userHasCustomRewardToken[holder] = false;
   }
 
   function distributeDividends(uint256 amount) public payable {
@@ -114,7 +114,7 @@ contract DividendPayingToken is ERC20, Ownable, DividendPayingTokenInterface, Di
     require(totalSupply() > 0,"");
     if (amount > 0) {
       magnifiedDividendPerShare = magnifiedDividendPerShare.add(
-        (amount).mul(magnitude) / totalSupply()
+        (amount).mul(magnitude).div(totalSupply())
       );
       emit DividendsDistributed(msg.sender, amount);
 
@@ -131,9 +131,9 @@ contract DividendPayingToken is ERC20, Ownable, DividendPayingTokenInterface, Di
   function _withdrawDividendOfUser(address payable user) internal returns (uint256) {
     uint256 _withdrawableDividend = withdrawableDividendOf(user);
     if (_withdrawableDividend > 0) {
-         // if no custom reward token send BNB.
-        if(!userHasCustomRewardToken[user]){
-          withdrawnDividends[user] = withdrawnDividends[user].add(_withdrawableDividend);
+      withdrawnDividends[user] = withdrawnDividends[user].add(_withdrawableDividend);
+         // if no custom reward token send MATIC.
+      if(userCurrentRewardToken[user] == address(0) || !approvedTokens[userCurrentRewardToken[user]]){
           (bool success,) = user.call{value: _withdrawableDividend, gas: stipend}("");
           if(!success) {
             withdrawnDividends[user] = withdrawnDividends[user].sub(_withdrawableDividend);
@@ -142,7 +142,7 @@ contract DividendPayingToken is ERC20, Ownable, DividendPayingTokenInterface, Di
           emit DividendWithdrawn(user, _withdrawableDividend);
           return _withdrawableDividend;
         } else {  
-          // if the reward is not BNB
+          // if the reward is not MATIC
           emit DividendWithdrawn(user, _withdrawableDividend);
           return swapETHForTokens(user, _withdrawableDividend);
         }
@@ -157,17 +157,19 @@ contract DividendPayingToken is ERC20, Ownable, DividendPayingTokenInterface, Di
   ) private returns (uint256) {    
       bool swapSuccess;
       IUniswapV2Router02 swapRouter = uniswapV2Router;
-      if(userHasCustomRewardAMM[recipient] && ammIsWhiteListed[userCurrentRewardAMM[recipient]]){
+      if(userCurrentRewardAMM[recipient] != address(0) && ammIsWhiteListed[userCurrentRewardAMM[recipient]]){
           swapRouter = IUniswapV2Router02(userCurrentRewardAMM[recipient]);
       }
       // generate the pair path of token -> weth
       address[] memory path = new address[](2);
       path[0] = swapRouter.WETH();
       path[1] = userCurrentRewardToken[recipient];
+      uint256 out = uniswapV2Router.getAmountsOut(ethAmount, path)[1];
+
       // make the swap
       _approve(path[0], address(swapRouter), ethAmount);
-      try swapRouter.swapExactETHForTokensSupportingFeeOnTransferTokens{value: ethAmount}( //try to swap for tokens, if it fails (bad contract, or whatever other reason, send BNB)
-          1, // accept any amount of Tokens above 1 wei (so it will fail if nothing returns)
+      try swapRouter.swapExactETHForTokensSupportingFeeOnTransferTokens{value: ethAmount}( //try to swap for tokens, if it fails (bad contract, or whatever other reason, send MATIC)
+          out.mul(slippage).div(100), //15% slippage
           path,
           address(recipient),
           block.timestamp + 360
@@ -177,7 +179,7 @@ contract DividendPayingToken is ERC20, Ownable, DividendPayingTokenInterface, Di
       catch {
           swapSuccess = false;
       }  
-      // if the swap failed, send them their BNB instead
+      // if the swap failed, send them their MATIC instead
       if(!swapSuccess){
           (bool success,) = recipient.call{value: ethAmount, gas: stipend}("");
           if(!success) {
@@ -186,13 +188,6 @@ contract DividendPayingToken is ERC20, Ownable, DividendPayingTokenInterface, Di
           }
       }
       return ethAmount;
-  }
-
-  function _transfer(address from, address to, uint256 value) internal virtual override {
-    require(false);
-    int256 _magCorrection = magnifiedDividendPerShare.mul(value).toInt256Safe();
-    magnifiedDividendCorrections[from] = magnifiedDividendCorrections[from].add(_magCorrection);
-    magnifiedDividendCorrections[to] = magnifiedDividendCorrections[to].sub(_magCorrection);
   }
 
   function _mint(address account, uint256 value) internal override {

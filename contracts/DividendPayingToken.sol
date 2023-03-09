@@ -52,13 +52,16 @@ contract DividendPayingToken is ERC20, Ownable, DividendPayingTokenInterface, Di
 
   uint256 public totalDividendsDistributed;
   
-  IUniswapV2Router02 public uniswapV2Router = IUniswapV2Router02(0x10ED43C718714eb63d5aA57B78B54704E256024E);
+  IUniswapV2Router02 public uniswapV2Router = IUniswapV2Router02(0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff);
 
   constructor(string memory _name, string memory _symbol)  ERC20(_name, _symbol) {
-    ammIsWhiteListed[address(0x10ED43C718714eb63d5aA57B78B54704E256024E)] = true;
-    approvedTokens[0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56] = true; // BUSD
-    approvedTokens[0x7130d2A12B9BCbFAe4f2634d864A1Ee1Ce3Ead9c] = true; // BTC
-    approvedTokens[0x2170Ed0880ac9A755fd29B2688956BD959F933F8] = true; // ETH
+    ammIsWhiteListed[address(0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff)] = true;
+    approvedTokens[0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174] = true; // USDC
+    approvedTokens[0xc2132D05D31c914a87C6611C10748AEb04B58e8F] = true; // USDT
+    approvedTokens[0x2C89bbc92BD86F8075d1DEcc58C7F4E0107f286b] = true; // AVAX
+    approvedTokens[0x1bfd67037b42cf73acf2047067bd4f2c47d9bfd6] = true; // WBTC
+    approvedTokens[0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619] = true; // WETH
+    approvedTokens[0x2C89bbc92BD86F8075d1DEcc58C7F4E0107f286b] = true; // AVAX
   }
 
   receive() external payable {

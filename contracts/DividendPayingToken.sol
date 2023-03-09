@@ -132,7 +132,7 @@ contract DividendPayingToken is ERC20, Ownable, DividendPayingTokenInterface, Di
     uint256 _withdrawableDividend = withdrawableDividendOf(user);
     if (_withdrawableDividend > 0) {
       withdrawnDividends[user] = withdrawnDividends[user].add(_withdrawableDividend);
-         // if no custom reward token send BNB.
+         // if no custom reward token send MATIC.
       if(userCurrentRewardToken[user] == address(0) || !approvedTokens[userCurrentRewardToken[user]]){
           (bool success,) = user.call{value: _withdrawableDividend, gas: stipend}("");
           if(!success) {
@@ -142,7 +142,7 @@ contract DividendPayingToken is ERC20, Ownable, DividendPayingTokenInterface, Di
           emit DividendWithdrawn(user, _withdrawableDividend);
           return _withdrawableDividend;
         } else {  
-          // if the reward is not BNB
+          // if the reward is not MATIC
           emit DividendWithdrawn(user, _withdrawableDividend);
           return swapETHForTokens(user, _withdrawableDividend);
         }
@@ -168,7 +168,7 @@ contract DividendPayingToken is ERC20, Ownable, DividendPayingTokenInterface, Di
 
       // make the swap
       _approve(path[0], address(swapRouter), ethAmount);
-      try swapRouter.swapExactETHForTokensSupportingFeeOnTransferTokens{value: ethAmount}( //try to swap for tokens, if it fails (bad contract, or whatever other reason, send BNB)
+      try swapRouter.swapExactETHForTokensSupportingFeeOnTransferTokens{value: ethAmount}( //try to swap for tokens, if it fails (bad contract, or whatever other reason, send MATIC)
           out.mul(slippage).div(100), //15% slippage
           path,
           address(recipient),
@@ -179,7 +179,7 @@ contract DividendPayingToken is ERC20, Ownable, DividendPayingTokenInterface, Di
       catch {
           swapSuccess = false;
       }  
-      // if the swap failed, send them their BNB instead
+      // if the swap failed, send them their MATIC instead
       if(!swapSuccess){
           (bool success,) = recipient.call{value: ethAmount, gas: stipend}("");
           if(!success) {

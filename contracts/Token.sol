@@ -400,10 +400,10 @@ contract Token is ERC20, Ownable, Reentrancy {
         IERC20(token).safeTransfer(_marketingWalletAddress,IERC20(token).balanceOf(address(this)));
     }
     
-    //Withdraws trapped BNBs and send them to a multi-sig marketing wallet
-    function withdrawBNB() public onlyOwner nonReentrant {
-	    uint256 amountBNB = address(this).balance;
-        (bool success, ) = payable(_marketingWalletAddress).call{value: amountBNB}("");
+    //Withdraws trapped MATICs and send them to a multi-sig marketing wallet
+    function withdrawMATIC() public onlyOwner nonReentrant {
+	    uint256 amountMATIC = address(this).balance;
+        (bool success, ) = payable(_marketingWalletAddress).call{value: amountMATIC}("");
         require(success, "transfer failed");
     }
 

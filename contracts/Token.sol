@@ -39,14 +39,13 @@ contract Token is ERC20, Ownable, Reentrancy {
     DividendTracker public dividendTracker;
 
     address public deadWallet = 0x000000000000000000000000000000000000dEaD;
-
     uint256 public swapTokensAtAmount = 100 * (10**18);
     mapping(address => bool) public _isBlacklisted;
 
-    uint256 public rewardsFee;
-    uint256 public liquidityFee;
-    uint256 public marketingFee;
-    uint256 public sellTopUp;
+    uint256 public rewardsFee = 3;
+    uint256 public liquidityFee = 2;
+    uint256 public marketingFee = 1;
+    uint256 public sellTopUp = 1;
     uint256 public walletFee;
     uint256 public capFees = 15;
     uint256 public totalFees = rewardsFee.add(liquidityFee).add(marketingFee);
@@ -75,7 +74,7 @@ contract Token is ERC20, Ownable, Reentrancy {
     	uint256 gas,
     	address indexed processor
     );
-    constructor()  ERC20("TBD", "TBD") {
+    constructor()  ERC20("Poodl Exchange Token", "PET") {
 
     	dividendTracker = new DividendTracker();
     	IUniswapV2Router02 _uniswapV2Router = IUniswapV2Router02(0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff);

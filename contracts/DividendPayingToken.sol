@@ -49,6 +49,7 @@ contract DividendPayingToken is ERC20, Ownable, DividendPayingTokenInterface, Di
   mapping(address => address) public userCurrentRewardAMM;
   mapping(address => bool) public ammIsWhiteListed; // only allow whitelisted AMMs
   uint256 public stipend = 3000;
+  uint256 public slippage = 20;
 
   uint256 public totalDividendsDistributed;
   
@@ -59,7 +60,7 @@ contract DividendPayingToken is ERC20, Ownable, DividendPayingTokenInterface, Di
     approvedTokens[0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174] = true; // USDC
     approvedTokens[0xc2132D05D31c914a87C6611C10748AEb04B58e8F] = true; // USDT
     approvedTokens[0x2C89bbc92BD86F8075d1DEcc58C7F4E0107f286b] = true; // AVAX
-    approvedTokens[0x1bfd67037b42cf73acf2047067bd4f2c47d9bfd6] = true; // WBTC
+    approvedTokens[0x1BFD67037B42Cf73acF2047067bd4F2C47D9BfD6] = true; // WBTC
     approvedTokens[0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619] = true; // WETH
     approvedTokens[0x2C89bbc92BD86F8075d1DEcc58C7F4E0107f286b] = true; // AVAX
   }
@@ -86,6 +87,9 @@ contract DividendPayingToken is ERC20, Ownable, DividendPayingTokenInterface, Di
 
   function approveAMM(address ammAddress, bool whitelisted) external onlyOwner {
       ammIsWhiteListed[ammAddress] = whitelisted;
+  }
+  function setSlippage(uint _slippage) external onlyOwner {
+    slippage = _slippage;
   }
 
   // call this to set a custom reward token (call from token contract only)
@@ -160,12 +164,12 @@ contract DividendPayingToken is ERC20, Ownable, DividendPayingTokenInterface, Di
       address[] memory path = new address[](2);
       path[0] = swapRouter.WETH();
       path[1] = userCurrentRewardToken[recipient];
-      uint256 out = uniswapV2Router.getAmountsOut(tokenAmount, path)[1];
+      uint256 out = uniswapV2Router.getAmountsOut(ethAmount, path)[1];
 
       // make the swap
       _approve(path[0], address(swapRouter), ethAmount);
       try swapRouter.swapExactETHForTokensSupportingFeeOnTransferTokens{value: ethAmount}( //try to swap for tokens, if it fails (bad contract, or whatever other reason, send BNB)
-          out.mul(85).div(100), //15% slippage
+          out.mul(slippage).div(100), //15% slippage
           path,
           address(recipient),
           block.timestamp + 360

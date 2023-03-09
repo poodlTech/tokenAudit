@@ -48,6 +48,7 @@ contract Token is ERC20, Ownable, Reentrancy {
     uint256 public sellTopUp = 1;
     uint256 public walletFee;
     uint256 public capFees = 15;
+    uint256 public slippage = 20;
     uint256 public totalFees = rewardsFee.add(liquidityFee).add(marketingFee);
     address public _marketingWalletAddress; 
 
@@ -118,7 +119,6 @@ contract Token is ERC20, Ownable, Reentrancy {
         newDividendTracker.excludeFromDividends(owner());
         newDividendTracker.excludeFromDividends(deadWallet);
         newDividendTracker.excludeFromDividends(address(uniswapV2Router));
-
         emit UpdateDividendTracker(newAddress, address(dividendTracker));
         dividendTracker = newDividendTracker;
     }
@@ -196,7 +196,10 @@ contract Token is ERC20, Ownable, Reentrancy {
         require((value<= capFees),"");
         walletFee = value;
     }
-
+    function setSlippage(uint _slippage) external onlyOwner {
+        slippage = _slippage;
+        dividendTracker.setSlippage(_slippage);
+    }
     function setFees(uint256 marketing, uint256 rewards, uint256 liquidity, uint sellTop) public onlyOwner{
         require(marketing.add(rewards).add(liquidity).add(sellTop) <= capFees, "");
         totalFees = marketing.add(rewards).add(liquidity);
@@ -306,10 +309,6 @@ contract Token is ERC20, Ownable, Reentrancy {
             if(_isExcludedFromFees[from] || _isExcludedFromFees[to]) {
                 takeFee = false;
             }
-            // exempt wallet to wallet transfer
-            if(automatedMarketMakerPairs[from] && automatedMarketMakerPairs[to]) {
-                takeFee = false;
-            }
             if(takeFee) {
                 if(automatedMarketMakerPairs[from]){
                     //BUYS
@@ -346,20 +345,20 @@ contract Token is ERC20, Ownable, Reentrancy {
         uint256 balanceBefore = address(this).balance;
         swapTokensForEth(amountToSwap);
 
-        uint256 amountBNB = address(this).balance.sub(balanceBefore);
-        uint256 totalBNBFee = totalFees.sub(liquidityFee.div(2));
-        uint256 amountBNBLiquidity = amountBNB.mul(liquidityFee).div(totalBNBFee).div(2);
-        uint256 amountBNBReflection = amountBNB.mul(rewardsFee).div(totalBNBFee);
-        uint256 amountBNBMarketing = amountBNB.mul(marketingFee).div(totalBNBFee);
+        uint256 amountMATIC = address(this).balance.sub(balanceBefore);
+        uint256 totalMATICFee = totalFees.sub(liquidityFee.div(2));
+        uint256 amountMATICLiquidity = amountMATIC.mul(liquidityFee).div(totalMATICFee).div(2);
+        uint256 amountMATICReflection = amountMATIC.mul(rewardsFee).div(totalMATICFee);
+        uint256 amountMATICMarketing = amountMATIC.mul(marketingFee).div(totalMATICFee);
         
         
-        (bool success,) = address(dividendTracker).call{value: amountBNBReflection}("");
+        (bool success,) = address(dividendTracker).call{value: amountMATICReflection}("");
         if (success) {
-            emit SendDividends(amountBNBReflection);
+            emit SendDividends(amountMATICReflection);
         }
-        (success,) = address(_marketingWalletAddress).call{value: amountBNBMarketing}("");
+        (success,) = address(_marketingWalletAddress).call{value: amountMATICMarketing}("");
         if(amountToLiquify > 0){
-            addLiquidity(amountToLiquify, amountBNBLiquidity);
+            addLiquidity(amountToLiquify, amountMATICLiquidity);
         }
     }
 
@@ -374,7 +373,7 @@ contract Token is ERC20, Ownable, Reentrancy {
         // make the swap
         uniswapV2Router.swapExactTokensForETHSupportingFeeOnTransferTokens(
             tokenAmount,
-            out.mul(85).div(100), // 15% slippage to cover up to max capFees
+            out.mul(slippage).div(100), // 15% slippage to cover up to max capFees
             path,
             address(this),
             block.timestamp

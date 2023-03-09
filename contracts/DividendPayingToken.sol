@@ -122,10 +122,6 @@ contract DividendPayingToken is ERC20, Ownable, DividendPayingTokenInterface, Di
     }
   }
 
-  function withdrawDividend() external virtual override {
-    _withdrawDividendOfUser(payable(msg.sender));
-  }
-
   /// @notice Withdraws the dividends distributed to the sender.
   /// @dev It emits a `DividendWithdrawn` event if the amount of withdrawn dividends is greater than 0.
   function _withdrawDividendOfUser(address payable user) internal returns (uint256) {

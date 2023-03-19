@@ -88,6 +88,7 @@ contract PetPreSale is Ownable {
         uint256 amountToken;
     }
     mapping (address => UserInfo) public userInfo; // Info of each user.
+    
     event Buy(uint256 tokenAmount, uint256 maticAmount, address buyer);
    
     // constructor 

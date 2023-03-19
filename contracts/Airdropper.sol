@@ -32,11 +32,6 @@ contract Airdropper is Ownable, Reentrancy {
     mapping(address => bool) public isAirdropped;
     IERC20 public newToken = IERC20(0xb7486718ea21C79BBd894126f79F504fd3625f68);
 
-    event Airdropped(
-    	uint256 amount,
-        address holder
-    );
-
     constructor() {}
 
     receive() external payable {}

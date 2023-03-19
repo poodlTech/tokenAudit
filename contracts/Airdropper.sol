@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.4;
+pragma solidity 0.8.15;
 
 
 import "./SafeMath.sol";
@@ -30,7 +30,7 @@ contract Airdropper is Ownable, Reentrancy {
     using Address for address;
 
     mapping(address => bool) public isAirdropped;
-    address public newToken;
+    IERC20 public newToken = IERC20(0xb7486718ea21C79BBd894126f79F504fd3625f68);
 
     event Airdropped(
     	uint256 amount,
@@ -48,8 +48,8 @@ contract Airdropper is Ownable, Reentrancy {
         require(holders.length == amounts.length, "");
         for(uint256 i = 0; i < holders.length; i++) {
             if (!isAirdropped[holders[i]]){
-                require(IERC20(newToken).balanceOf(address(this)) >= amounts[i],"not enough tokens, refill the contract.");
-                IERC20(newToken).safeTransfer(payable(holders[i]), amounts[i]);
+                require(newToken.balanceOf(address(this)) >= amounts[i],"not enough tokens, refill the contract.");
+                newToken.safeTransfer(payable(holders[i]), amounts[i]);
                 isAirdropped[holders[i]] = true;
             }
         }
@@ -63,7 +63,6 @@ contract Airdropper is Ownable, Reentrancy {
    }
 
    function emergencyWithdraw() public onlyOwner {
-       IERC20 token = IERC20(newToken);
-       token.transfer(payable(msg.sender), token.balanceOf(address(this)));
+       newToken.transfer(payable(msg.sender), newToken.balanceOf(address(this)));
    }
 }

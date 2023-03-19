@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.4;
+pragma solidity 0.8.15;
 
 
 import "./DividendPayingToken.sol";
@@ -29,7 +29,7 @@ abstract contract Reentrancy {
 }
 
 
-contract Token is ERC20, Ownable, Reentrancy {
+contract PET is ERC20, Ownable, Reentrancy {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
     using Address for address;
@@ -47,10 +47,10 @@ contract Token is ERC20, Ownable, Reentrancy {
     uint256 public marketingFee = 1;
     uint256 public sellTopUp = 1;
     uint256 public walletFee;
-    uint256 public capFees = 15;
+    uint256 public capFees = 20;
     uint256 public slippage = 20;
     uint256 public totalFees = rewardsFee.add(liquidityFee).add(marketingFee);
-    address public _marketingWalletAddress; 
+    address public _marketingWalletAddress = 0x5C9D790F7d38c97b6F78a8ad173de262e06f0A37; 
 
      // exlcude from fees and max transaction amount
     mapping (address => bool) private _isExcludedFromFees;
